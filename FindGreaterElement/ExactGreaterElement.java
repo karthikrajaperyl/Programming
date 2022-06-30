@@ -66,5 +66,6 @@ public class ExactGreaterElement {
 		tempObj.nextGreaterOfSmallerElement(a);
 		for (int i = 0; i < n; i++)
 			System.out.println(a[i]);
+		scannerObj.close();
 	}
 }
