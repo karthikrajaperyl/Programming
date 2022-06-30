@@ -40,10 +40,12 @@ public class ArrangeBalloons {
 		System.out.println("Enter the Number of balloons in CAPITAL LETTER");
 		int n = scannerObj.nextInt();
 		Character[] a = new Character[n];
+		System.out.println("Enter the Ballons Color-");
 		for (int i = 0; i < n; i++) {
 			a[i] = scannerObj.next().charAt(0);
 		}
 		tempObj.storeArray(a);
+		System.out.println("Arranged Ballons are-");
 		for (int i = 0; i < n; i++)
 			System.out.println(a[i]);
 		scannerObj.close();
