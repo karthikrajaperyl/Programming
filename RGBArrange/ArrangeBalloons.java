@@ -37,10 +37,10 @@ public class ArrangeBalloons {
 	public static void main(String[] args) {
 		Scanner scannerObj = new Scanner(System.in);
 		ArrangeBalloons tempObj = new ArrangeBalloons();
-		System.out.println("Enter the Number of balloons in CAPITAL LETTER");
+		System.out.println("Enter the Number of balloons ");
 		int n = scannerObj.nextInt();
 		Character[] a = new Character[n];
-		System.out.println("Enter the Ballons Color-");
+		System.out.println("Enter the Ballons Color(in CAPITAL LETTER)");
 		for (int i = 0; i < n; i++) {
 			a[i] = scannerObj.next().charAt(0);
 		}
