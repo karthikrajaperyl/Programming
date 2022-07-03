@@ -1,174 +1,310 @@
-package atmCardCreation;
+package atmCardDesign;
 
 import java.util.Scanner;
-import java.io.*;
+import java.util.Date;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
 
-class MyException extends Exception {
-	MyException(String exceptionName) {
-		super(exceptionName);
-	}
+enum CardType {
+	DEDITCARD, CREDITCARD
 }
 
 class ATMCard {
-	private int cardNumber;
-	private int amount;
+	private static int id;
+	int atmPin;
+	int atmId;
+	BankService bankService;
+	ATMCardDetails cardInfo;
+	Account accountObj;
+	Transaction TransactionObj;
 
-	ATMCard(int number) {
-		this.cardNumber = number;
+	ATMCard(Builder builder) {
+		this.atmPin = builder.atmPin;
+		this.atmPin = ++id;
 	}
 
-	private int getCardNumber() {
-		return cardNumber;
-	}
+	ATMCard cardObj;
 
-	public boolean setAmount(int amount, boolean offer) {
-		if (offer == true) {
-			this.amount += amount;
-			return true;
-		}
-		if ((getAmount() + amount) >= 100) {
-			this.amount += amount;
-			return true;
-		}
-		return false;
-	}
+	public static class Builder {
+		private static int id;
+		private int atmPin;
+		private int atmId;
+		private BankService bankService;
+		private ATMCardDetails cardInfo;
+		private Account accountObj;
+		private Transaction TransactionObj;
 
-	public int getAmount() {
-		return amount;
-	}
-
-	private boolean reduceAmount(int amount, int cardNumber) throws MyException {
-		if (cardNumber == getCardNumber()) {
-			this.amount -= amount;
-			return true;
-		} else
-			throw new MyException("Password Mismatch");
-	}
-
-	public int getTransactionCharges(int amount) {
-		int i = 0;
-		if (amount <= 100) {
-			i = (2 * amount) / 100;
-		} else if (amount > 100) {
-			i = (4 * amount) / 100;
+		public static Builder newInstance() {
+			return new Builder();
 		}
 
-		return i;
+		private Builder() {
+		}
+
+		public Builder setAccount(Account accountObj) {
+			this.accountObj = accountObj;
+			return this;
+		}
+
+		public Builder setAtmCardDetails(ATMCardDetails cardDetails) {
+			this.cardInfo = cardDetails;
+			return this;
+		}
+
+		public ATMCard build(int ATMPin) {
+			return new ATMCard(this);
+		}
 	}
 
-	public boolean cashWithDrawal(int amount, int cardNumber) throws MyException {
-		int transactionCharges;
-		transactionCharges = getTransactionCharges(amount);
-		if (getAmount() > (amount + transactionCharges)) {
-			return reduceAmount(amount + transactionCharges, cardNumber);
-		}
-		else
-		throw new MyException("You Don't have an Sufficeint Balance");
+	public void setBankService(BankService bankService) {
+		this.bankService = bankService;
 	}
 }
 
-public class Bank {
-	private void showBalance(ATMCard cardObj) {
-		System.out.println("Available Balance-$" + cardObj.getAmount());
+class ATMCardDetails {
+	final int CCVPin;
+	final Date validity;
+	final CardType cardType;
+
+	ATMCardDetails(int ccvPin, Date validity, CardType cardType) {
+		this.CCVPin = ccvPin;
+		this.validity = validity;
+		this.cardType = cardType;
 	}
 
-	private boolean amountDeposit(int amount, ATMCard cardObj) {
-		return cardObj.setAmount(amount, false);
+	public Date getValidity() {
+		return this.validity;
+	}
+}
+
+class Account {
+	private int accountNumber;
+	private float amount;
+
+	Account(int accountNumber) {
+		this.accountNumber = accountNumber;
 	}
 
-	private void setOfferAmount(int amount, ATMCard cardObj) {
-		cardObj.setAmount(amount, true);
+	public int getAccountNumber() {
+		return this.accountNumber;
 	}
 
-	private boolean checkMultipleOfFive(int amount) {
-		return amount % 5 == 0;
+	public void setBalance(float amount) {
+		this.amount = amount;
 	}
 
-	private boolean withDrawAmount(int amount, ATMCard cardObj) throws IOException, MyException {
-		BufferedReader readerObj = new BufferedReader(new InputStreamReader(System.in));
-		System.out.println("Enter the ATM card number");
-		int cardNumber = Integer.parseInt(readerObj.readLine());
-		if (cardObj.cashWithDrawal(amount, cardNumber))
+	public float getBalance() {
+		return this.amount;
+	}
+}
+
+abstract class Transaction {
+	private TransactionDetails transactionObj;
+	TransactionType transactionType;
+
+	public void setTransactionDetails(TransactionDetails transactionObj) {
+		this.transactionObj = transactionObj;
+	}
+
+	public TransactionDetails getTransactionDetails() {
+		return this.transactionObj;
+	}
+
+	public float transactionCharge(float amount) {
+		if (amount <= 100)
+			return (amount * 2) / 100;
+		else
+			return (amount * 4) / 100;
+	}
+
+	abstract float getAmount();
+
+	abstract void setTransactionType();
+}
+
+class TransactionDetails {
+	static int id;
+	int transactionId;
+	String transactionDate;
+	TransactionStatus transactionStatus;
+
+	TransactionDetails() {
+		id++;
+		this.transactionId = ++id;
+	}
+
+	public void setTransactionDate() {
+		SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");// dd/MM/yyyy
+		Date now = new Date();
+		String strDate = sdfDate.format(now);
+		this.transactionDate = strDate;
+	}
+}
+
+enum TransactionType {
+	WITHDRAW, SWIPETYPE
+}
+
+enum TransactionStatus {
+	PENDING, SUCCESS, FAILED, ERORR
+}
+
+interface BankService {
+	void validUser(int pin, ATMCardDetails cardInfo);
+
+	Transaction executeTransaction(Account account, ATMCard cardinfo);
+}
+
+class WithDraw extends Transaction {
+	private float amount;
+
+	WithDraw(float amount) {
+		this.amount = amount;
+		this.setTransactionType();
+	}
+
+	public float getAmount() {
+		return amount + transactionCharge(amount);
+	}
+
+	public void setTransactionType() {
+		this.transactionType = TransactionType.WITHDRAW;
+	}
+}
+
+class SwipeType extends Transaction {
+	private float amount;
+
+	SwipeType(float amount) {
+		this.amount = amount;
+		this.setTransactionType();
+	}
+
+	private float cashBackCharge(float amount) {
+		return (amount * 1) / 100;
+	}
+
+	public float getAmount() {
+		return amount - transactionCharge(amount) + cashBackCharge(amount);
+	}
+
+	public void setTransactionType() {
+		this.transactionType = TransactionType.SWIPETYPE;
+	}
+}
+
+class ATMFactory {
+	private volatile ATMCard cardObj;
+
+	public ATMFactory(int ATMPin, Account accountObj, ATMCardDetails cardInfo) {
+		cardObj = ATMCard.Builder.newInstance().setAccount(accountObj).setAtmCardDetails(cardInfo).build(ATMPin);
+	}
+
+	public ATMCard getInstance() {
+		return cardObj;
+	}
+}
+
+public class Bank implements BankService {
+	private String name;
+
+	Bank(String name) {
+		this.name = name;
+	}
+
+	public void validUser(int pin, ATMCardDetails cardInfo) {
+//
+	}
+
+	public boolean checkAmount(float amount) {
+		return amount % 5 == 0.0;
+	}
+
+	private boolean checkBalance(float availableAmount, float currentAmount) {
+		if (availableAmount >= currentAmount)
 			return true;
 		else
 			return false;
 	}
 
-	private int addOffer(int amount) {
-		return (1 * amount) / 100;
+	private Transaction processTransaction(Account account, ATMCard cardinfo) {
+		BufferedReader readerObj = new BufferedReader(new InputStreamReader(System.in));
+		Transaction transactionObj = null;
+		TransactionDetails transactionDetails = new TransactionDetails();
+		try {
+			float amount = 0;
+			boolean continuation = true;
+			System.out.println("Choose the Transaction Type");
+
+			System.out.println("\n1.WithDrawal\n2.Swipe Type");
+			int n = Integer.parseInt(readerObj.readLine());
+			System.out.println("Enter the Amount");
+			amount = Integer.parseInt(readerObj.readLine());
+			while (continuation) {
+				if (checkAmount(amount))
+					break;
+				System.out.println("Enter the amount for transaction-Its should be multiple of 5");
+				amount = Integer.parseInt(readerObj.readLine());
+			}
+			if (n == 1) {
+				transactionObj = new WithDraw(amount);
+				account.setBalance(account.getBalance() - transactionObj.getAmount());
+			} else {
+				transactionObj = new SwipeType(amount);
+				account.setBalance(account.getBalance() + transactionObj.getAmount());
+			}
+			if (checkBalance(account.getBalance(), transactionObj.getAmount())) {
+				transactionDetails.transactionStatus = TransactionStatus.FAILED;
+			}
+			transactionDetails.setTransactionDate();
+			transactionDetails.transactionStatus = TransactionStatus.SUCCESS;
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			transactionDetails.transactionStatus = TransactionStatus.ERORR;
+		}
+		transactionObj.setTransactionDetails(transactionDetails);
+		return transactionObj;
 	}
 
-	public void performTransaction(ATMCard cardObj) throws IOException {
+	public Transaction executeTransaction(Account accountInfo, ATMCard cardInfo) {
+		return processTransaction(accountInfo, cardInfo);
+	}
+
+	public static Account getAccount() throws IOException {
 		BufferedReader readerObj = new BufferedReader(new InputStreamReader(System.in));
-		boolean continuation = true;
-		int amount;
-		while (continuation) {
-			System.out.println("\n1.Cash Deposit\n2.Cash WithDrawn\n3.Swipe-Shopping\n4.Exit");
-			int n = Integer.parseInt(readerObj.readLine());
-
-			switch (n) {
-
-			case 1:
-				System.out.println("Enter the Cash Amount:");
-				amount = Integer.parseInt(readerObj.readLine());
-				if (amountDeposit(amount, cardObj)) {
-					System.out.println("Amount added Successfully");
-					showBalance(cardObj);
-				} else
-					System.out.println("Minimum balance should be $100");
-				break;
-			case 2:
-				System.out.println("Enter the Cash Amount:");
-				amount = Integer.parseInt(readerObj.readLine());
-				try {
-					if (!checkMultipleOfFive(amount)) {
-						System.out.println("Please correct the amount of value. It should be multiple of USD 5");
-						break;
-					}
-					if (withDrawAmount(amount, cardObj)) {
-						System.out.println("Amount Withdrawn Successfully");
-						showBalance(cardObj);
-					}
-				} catch (MyException e) {
-					System.out.println(e.getMessage());
-				}
-				break;
-			case 3:
-				System.out.println("Enter the Cash Amount:");
-				amount = Integer.parseInt(readerObj.readLine());
-				try {
-					if (withDrawAmount(amount, cardObj)) {
-						int tempAmount = addOffer(amount);
-						setOfferAmount(tempAmount, cardObj);
-						System.out.println("Swipe Amount-" + amount);
-						showBalance(cardObj);
-					}
-				} catch (MyException e) {
-					System.out.println(e.getMessage());
-				}
-				break;
-			case 4:
-				continuation = false;
-				System.exit(0);
-			}
-		}
+		Account accountObj = new Account(123445);
+		System.out.println("Enter the amount");
+		int amount = Integer.parseInt(readerObj.readLine());
+		accountObj.setBalance(amount);
+		return accountObj;
 	}
 
 	public static void main(String[] args) {
-		try {
-			Bank tempObj = new Bank();
-			Scanner scannerObj = new Scanner(System.in);
-			System.out.println("set ATM card number");
-			int cardNumber = scannerObj.nextInt();
-			ATMCard cardObj = new ATMCard(cardNumber);
-			tempObj.performTransaction(cardObj);
-			scannerObj.close();
-		}
 
-		catch (Exception e) {
-			e.printStackTrace();
+		try {
+			Scanner scannerObj = new Scanner(System.in);
+			Account accountObj = getAccount();
+			System.out.println("Set the ATM pin");
+			int atmPin = scannerObj.nextInt();
+			System.out.println("Enter the Card Type");
+			System.out.println("\n1.Credit Card\n2.Debit Card");
+			int n = scannerObj.nextInt();
+			ATMCardDetails cardDetailsInfo = null;
+			if (n == 1)
+				cardDetailsInfo = new ATMCardDetails(123, new Date(), CardType.CREDITCARD);
+			else
+				cardDetailsInfo = new ATMCardDetails(123, new Date(), CardType.DEDITCARD);
+			ATMFactory cardFactoryInfo = new ATMFactory(atmPin, accountObj, cardDetailsInfo);
+			BankService bankObj = new Bank("XYZ");
+			ATMCard cardInfo = cardFactoryInfo.getInstance();
+			bankObj.executeTransaction(accountObj, cardInfo);
+			cardInfo.setBankService(bankObj);
+			System.out.println("Customer Balance-" + accountObj.getBalance());
+			scannerObj.close();
+		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
 	}
-
 }
