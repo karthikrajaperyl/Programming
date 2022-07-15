@@ -62,7 +62,6 @@ public class ATMCard {
 class PlatinumATMCard extends ATMCard {
 	private int earningPoints;
 	private int ATMPin;
-	private ATMCard atmCard;
 	private int fuelOffer;
 
 	PlatinumATMCard(int ATMPin) {
